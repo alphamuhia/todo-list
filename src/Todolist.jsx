@@ -80,36 +80,38 @@ function Todolist() {
 
   if (!isLoggedIn) {
     return (
-      <div className="flex flex-col items-center min-h-screen bg-gray-100 p-4">
-        <h1 className="text-3xl font-bold text-blue-600 mb-6">Login</h1>
+      <div className="flex flex-col items-center min-h-screen bg-black p-4">
+        <h1 className="text-3xl font-bold text-gray-600 mb-6">Login</h1>
         {error && <p className="text-red-500 mb-4">{error}</p>}
-        <form
-          onSubmit={handleLogin}
-          className="flex flex-col gap-2 mb-4 w-full max-w-md"
-        >
-          <p>username : peter</p>
-          <p>password : Alpha</p>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
-            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-          />
-          <button
-            type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+        <div className="flex flex-col item-center bg-gray-400 border border border-gray-700 rounded-md p-8">
+          <form
+            onSubmit={handleLogin}
+            className="flex flex-col gap-2 mb-4 w-full max-w-md"
           >
-            Login
-          </button>
-        </form>
+            <p className="text-gray-900 bg-blue-300">username : peter</p>
+            <p className="text-gray-900 bg-blue-300">password : Alpha</p>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
+              className="p-2 bg-gray-300 border border border-none rounded-md"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="p-2 bg-gray-300 border border-none rounded-md"
+            />
+            <button
+              type="submit"
+              className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+            >
+              Login
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
@@ -125,26 +127,31 @@ function Todolist() {
       return new Date(a.date) - new Date(b.date);
     });
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-100 p-4">
-      <h1 className="text-3xl font-bold text-blue-600 mb-6">To-Do App</h1>
+    <div className="flex flex-col items-center min-h-screen bg-gray-600 p-4">
+      <h1 className="text-3xl font-bold text-blue-600 mb-6 bg-gray-300">
+        To-Do App
+      </h1>
 
-      <form onSubmit={addTask} className="flex gap-2 mb-4 w-full max-w-md">
+      <form
+        onSubmit={addTask}
+        className="flex gap-2 mb-4 w-full max-w-md bg-aqua-900"
+      >
         <input
           type="text"
           value={taskInput}
           onChange={(e) => setTaskInput(e.target.value)}
           placeholder="Add a task"
-          className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+          className="flex-1 p-2 border border-gray-900 rounded-md"
         />
         <input
           type="date"
           value={taskDate}
           onChange={(e) => setTaskDate(e.target.value)}
-          className="p-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+          className="p-2 border border-gray-900 rounded-md"
         />
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-800"
         >
           {editingTaskId ? "Update" : "Add"}
         </button>
@@ -155,7 +162,7 @@ function Todolist() {
         placeholder="Search tasks..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="p-2 border border-gray-300 rounded-md mb-4 w-full max-w-md focus:outline-none focus:border-blue-500"
+        className="p-2 border border-gray-900 rounded-md mb-4 w-full max-w-md"
       />
 
       <select onChange={(e) => setSortOption(e.target.value)} className="mb-4">
@@ -183,7 +190,7 @@ function Todolist() {
               />
               <span
                 className={`${
-                  task.completed ? "line-through text-gray-500" : ""
+                  task.completed ? "line-through text-red-700" : ""
                 }`}
               >
                 {task.title}{" "}
@@ -195,13 +202,13 @@ function Todolist() {
             <div className="flex gap-2">
               <button
                 onClick={() => startEditTask(task)}
-                className="text-blue-500 hover:text-blue-700"
+                className="text-green-700 bg-green-400 hover:text-blue-800"
               >
                 Edit
               </button>
               <button
                 onClick={() => deleteTask(task.id)}
-                className="text-red-500 hover:text-red-700"
+                className="text-red-500 bg-red-300 hover:text-red-700"
               >
                 Delete
               </button>
