@@ -28,7 +28,7 @@ function Todolist() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false); // State for toggle between Sign In and Sign Up
+  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "tasks"), (snapshot) => {
@@ -97,7 +97,6 @@ function Todolist() {
         username,
         password
       );
-      // Save user details to Firestore
       await setDoc(doc(db, "users", userCredential.user.uid), {
         username: username,
         email: userCredential.user.email,
@@ -133,7 +132,7 @@ function Todolist() {
     try {
       await signOut(auth);
       setIsLoggedIn(false);
-      setTasks([]); // Clear tasks on logout
+      setTasks([]);
     } catch (error) {
       console.error("Error logging out: ", error);
     }
