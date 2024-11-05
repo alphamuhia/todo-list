@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
 import useLocalStorage from "./components/useLocalStorage";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth, db } from "./firebase";
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  deleteDoc,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 
 function Todolist() {
   const [tasks, setTasks] = useLocalStorage("tasks", []);
@@ -12,54 +22,58 @@ function Todolist() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const storedTasks = JSON.parse(localStorage.getItem("tasks"));
-    if (storedTasks) {
-      setTasks(storedTasks);
-    }
-  });
+    const unsubscribe = onSnapshot(collection(db, "tasks"), (snapshot) => {
+      const tasksData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTasks(tasksData);
+    });
 
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
+    return () => unsubscribe();
+  }, [setTasks]);
 
-  const addTask = (e) => {
+  const addTask = async (e) => {
     e.preventDefault();
     if (taskInput) {
       const newTask = {
-        id: Date.now(),
         title: taskInput,
         completed: false,
         date: taskDate,
       };
 
-      if (editingTaskId) {
-        setTasks(
-          tasks.map((task) =>
-            task.id === editingTaskId ? { ...newTask, id: editingTaskId } : task
-          )
-        );
-        setEditingTaskId(null);
-      } else {
-        setTasks([...tasks, newTask]);
+      try {
+        if (editingTaskId) {
+          await updateDoc(doc(db, "tasks", editingTaskId), newTask);
+          setEditingTaskId(null);
+        } else {
+          await addDoc(collection(db, "tasks"), newTask);
+        }
+        setTaskInput("");
+        setTaskDate("");
+      } catch (error) {
+        console.error("Error adding task: ", error);
       }
-
-      setTaskInput("");
-      setTaskDate("");
     }
   };
 
-  const deleteTask = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+  const deleteTask = async (id) => {
+    try {
+      await deleteDoc(doc(db, "tasks", id));
+    } catch (error) {
+      console.error("Error deleting task: ", error);
+    }
   };
 
-  const toggleTask = (id) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
+  const toggleTask = async (id, completed) => {
+    try {
+      await updateDoc(doc(db, "tasks", id), { completed: !completed });
+    } catch (error) {
+      console.error("Error toggling task: ", error);
+    }
   };
 
   const startEditTask = (task) => {
@@ -68,13 +82,29 @@ function Todolist() {
     setEditingTaskId(task.id);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (username === "peter" && password === "Alpha") {
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, username, password);
       setIsLoggedIn(true);
+      setUsername("");
+      setPassword("");
       setError("");
-    } else {
+    } catch (error) {
       setError("Invalid credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsLoggedIn(false);
+      setTasks([]); // Clear tasks on logout
+    } catch (error) {
+      console.error("Error logging out: ", error);
     }
   };
 
@@ -83,37 +113,32 @@ function Todolist() {
       <div className="flex flex-col items-center min-h-screen bg-gray-800 p-4">
         <h1 className="text-3xl font-bold text-blue-500 mb-6">Login</h1>
         {error && <p className="text-red-500 mb-4">{error}</p>}
-
-        <div className="flex flex-col items-center bg-gray-700 border border-gray-600 rounded-md p-8 shadow-lg">
-          <form
-            onSubmit={handleLogin}
-            className="flex flex-col gap-4 w-full max-w-md"
+        <form
+          onSubmit={handleLogin}
+          className="flex flex-col gap-4 w-full max-w-md"
+        >
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+            className="p-2 bg-gray-600 text-white border border-gray-500 rounded-md"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="p-2 bg-gray-600 text-white border border-gray-500 rounded-md"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            disabled={loading}
           >
-            <p className="text-gray-300 mb-2">Username: peter</p>
-            <p className="text-gray-300 mb-2">Password: Alpha</p>
-
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className="p-2 bg-gray-600 text-white border border-gray-500 rounded-md"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="p-2 bg-gray-600 text-white border border-gray-500 rounded-md"
-            />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >
-              Login
-            </button>
-          </form>
-        </div>
+            {loading ? "Loading..." : "Login"}
+          </button>
+        </form>
       </div>
     );
   }
@@ -126,12 +151,20 @@ function Todolist() {
       if (sortOption === "completed") {
         return a.completed === b.completed ? 0 : a.completed ? 1 : -1;
       }
-      return new Date(a.date) - new Date(b.date);
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA - dateB;
     });
+
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-800 p-4">
       <h1 className="text-3xl font-bold text-blue-500 mb-6">To-Do App</h1>
-
+      <button
+        onClick={handleLogout}
+        className="mb-4 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+      >
+        Logout
+      </button>
       <form onSubmit={addTask} className="flex gap-2 mb-4 w-full max-w-md">
         <input
           type="text"
@@ -185,7 +218,7 @@ function Todolist() {
               <input
                 type="checkbox"
                 checked={task.completed}
-                onChange={() => toggleTask(task.id)}
+                onChange={() => toggleTask(task.id, task.completed)}
                 className="w-4 h-4 text-blue-500 bg-gray-800"
               />
               <span
