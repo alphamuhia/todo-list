@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import useLocalStorage from "./components/useLocalStorage";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import { auth, db } from "./firebase";
 import {
   collection,
@@ -9,6 +13,7 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 
 function Todolist() {
@@ -23,6 +28,7 @@ function Todolist() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false); // State for toggle between Sign In and Sign Up
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "tasks"), (snapshot) => {
@@ -82,6 +88,31 @@ function Todolist() {
     setEditingTaskId(task.id);
   };
 
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        username,
+        password
+      );
+      // Save user details to Firestore
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        username: username,
+        email: userCredential.user.email,
+      });
+      setIsLoggedIn(true);
+      setUsername("");
+      setPassword("");
+      setError("");
+    } catch (error) {
+      setError("Error creating user: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -111,17 +142,19 @@ function Todolist() {
   if (!isLoggedIn) {
     return (
       <div className="flex flex-col items-center min-h-screen bg-gray-800 p-4">
-        <h1 className="text-3xl font-bold text-blue-500 mb-6">Login</h1>
+        <h1 className="text-3xl font-bold text-blue-500 mb-6">
+          {isSignUp ? "Sign Up" : "Login"}
+        </h1>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <form
-          onSubmit={handleLogin}
+          onSubmit={isSignUp ? handleSignUp : handleLogin}
           className="flex flex-col gap-4 w-full max-w-md"
         >
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
+            placeholder="Username or Email"
             className="p-2 bg-gray-600 text-white border border-gray-500 rounded-md"
           />
           <input
@@ -136,7 +169,16 @@ function Todolist() {
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             disabled={loading}
           >
-            {loading ? "Loading..." : "Login"}
+            {loading ? "Loading..." : isSignUp ? "Sign Up" : "Login"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-blue-400 hover:text-blue-300 mt-2"
+          >
+            {isSignUp
+              ? "Already have an account? Login"
+              : "Don't have an account? Sign Up"}
           </button>
         </form>
       </div>
